@@ -16,7 +16,28 @@ const storage = multer.diskStorage({ // notice you are calling the multer.diskSt
 
 //Init Upload.
 
-const upload = multer({storage}).single('myImage');
+const upload = multer({storage: storage,
+	limits: {fileSize: 1000000},
+	fileFilter: function(req, file, cb){
+		checkFileType(file, cb);
+	}
+}).single('myImage');
+
+//Check file Type
+
+function checkFileType(file, cb){
+	//Allow ext
+	const filetypes = /jpeg|jpg|png|gif/;
+	//check ext
+	const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+	//check mime
+	const mimetype = filetypes.test(file.mimetype);
+	 if(mimetype && extname){
+	 	return cb(null, true);
+	 }else{
+	 	cb('Error: Images Only!' );
+	 }
+}
 
 //Init app
 const app = express();
@@ -30,14 +51,19 @@ app.get('/', (req, res) => res.render('index'));
 app.post('/upload', (req,res) => {
 	upload(req, res, (err) => {
 		if(err){
-			res.render('index', {message: err})
+			res.render('index', {msg: err})
 		}else{
-			console.log(req.file);
-			res.send('test');
+			if(req.file == undefined){
+				res.render('index', {msg: 'Error: No File Selected!'})
+			}else{
+				res.render('index', {
+					msg: 'File Uploaded!', 
+					file: 'uploads/' + req.file.filename
+				});
+			}
 		}
 	});
 });
-
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => console.log('Server started on port ' + port));
